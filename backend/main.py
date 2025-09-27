@@ -322,3 +322,6 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, user_id: str
         for participant_id in session.get_all_participants():
             if participant_id != user_id:
                 await manager.send_to_user(participant_id, leave_notification)
+if __name__=='__main__':
+    import uvicorn
+    uvicorn.run(app,host="0.0.0.0",port=8000)
