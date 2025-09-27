@@ -1,16 +1,68 @@
 import { useAuth } from "@/context/AuthContext";
 import { Trophy, ArrowRightIcon } from "lucide-react";
-// Component ported and enhanced from https://codepen.io/JuanFuentes/pen/eYEeoyE
 import { useState } from "react";
 import ASCIIText from "./ASCIIText";
-import { MultiStepLoaderDemo } from "./MultiStep";
 import { Button } from "@/components/ui/button";
 import Judge from "./Judge";
+import { sessionAPI } from "@/services/api";
 
 export default function Home() {
-  const { foundUser, setFU } = useState(false);
   const [showProg, setSP] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const { user, logout } = useAuth();
+
+  const handleCreateSession = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setSP(true); // Show the loader/judge component
+
+      // Create session with default values
+      const sessionData = {
+        sessionName: `${user?.displayName || user?.email}'s Turing Test`,
+        description:
+          "A Turing test session to distinguish between AI and human",
+        maxParticipants: 3,
+        durationMinutes: 30,
+      };
+
+      const response = await sessionAPI.createSession(sessionData);
+      console.log("Session created:", response);
+
+      // You can store the session info and navigate to the session
+      // For now, we'll just show the judge component
+    } catch (error) {
+      console.error("Failed to create session:", error);
+      setError(error.message);
+      setSP(false); // Hide loader on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinAsHuman = async () => {
+    // For now, just show a simple prompt for join code
+    const joinCode = prompt("Enter the session join code:");
+    if (!joinCode) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await sessionAPI.joinSession({ joinCode });
+      console.log("Joined session:", response);
+
+      // Navigate to the session or update UI accordingly
+      alert(`Successfully joined session: ${response.session_name}`);
+    } catch (error) {
+      console.error("Failed to join session:", error);
+      setError(error.message);
+      alert(`Failed to join session: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
   console.log("from home ");
   console.log(user);
   return (
@@ -34,18 +86,21 @@ export default function Home() {
 
           <Button
             className="group z-20 relative bottom-20 "
-            onClick={() => {
-              setSP((t) => !t);
-            }}
+            onClick={handleCreateSession}
+            disabled={loading}
           >
-            Become a Turing Tester
+            {loading ? "Creating Session..." : "Become a Turing Tester"}
             <ArrowRightIcon
               className="-me-1 opacity-60 transition-transform group-hover:translate-x-0.5"
               size={16}
               aria-hidden="true"
             />
           </Button>
-          <Button className="group z-20 relative bottom-20 ">
+          <Button
+            className="group z-20 relative bottom-20 "
+            onClick={handleJoinAsHuman}
+            disabled={loading}
+          >
             Play as Human
             <ArrowRightIcon
               className="-me-1 opacity-60 transition-transform group-hover:translate-x-0.5"
@@ -56,7 +111,7 @@ export default function Home() {
         </div>
         {showProg && (
           <div
-            className="fixed inset-0 z-20 flex items-center justify-center"
+            className="fixed inset-0 z-20 flex items-center justify-center bg-black/50"
             onClick={() => setSP(false)}
           >
             <div
@@ -65,6 +120,18 @@ export default function Home() {
             >
               <Judge />
             </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="fixed top-4 right-4 z-30 bg-red-500 text-white p-4 rounded-lg">
+            <p>{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 px-3 py-1 bg-red-700 rounded text-sm"
+            >
+              Dismiss
+            </button>
           </div>
         )}
       </div>
